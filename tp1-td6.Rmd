@@ -167,18 +167,6 @@ corrplot(cor_matrix, method = "color", tl.col = "black", tl.cex = 0.8)
 
 
 ```
-```{r}
-
-tree_best_features = function(tree){
-  # Obtener la importancia de las variables
-  importance <- model$variable.importance
-  # Ver las importancias
-  print(importance)
-}
-
-tree_best_features(model)
-
-```
 
 # Observaciones
 
@@ -241,6 +229,7 @@ default_tree <- rpart(diabetes ~ ., data = trainData , method = "class")
 
 ```
 
+
 Los hiperparámetros por default de rpart son:
 
 ```{r}
@@ -267,7 +256,25 @@ Si 'hbA1c_level >= 5.35' sigue con la variable 'age' y un umbral de 43.5
 Del lado derecho, el nodo que queda es un nodo terminal. Esto sugiere que hay una clasificación directa.
 Por último, al final de todo se encuentran todos los nodos terminales que ya no poseen ninguna otra división sino una clasificación.
 
+
 # 4. Evaluación del árbol básico
+
+## Feature Importance
+```{r}
+
+tree_best_features = function(tree){
+  # Obtener la importancia de las variables
+  importance <- tree$variable.importance
+  # Ver las importancias
+  print(importance)
+}
+
+tree_best_features(default_tree)
+
+```
+
+### Interppretacion
+texto...
 
 ## Predicciones
 
@@ -297,6 +304,9 @@ accuracy <- conf_matrix$overall["Accuracy"]
 print(conf_matrix)
 
 ```
+
+
+
 Interpretación de los resultados:
 Se puede ver que el modelo predijo correctamente 4140 instancias no tienen la condición 0 (es decir, no son diabéticos) mientras que el número de falsos negativos fue de 373. Para las instancias de verdaderos positivos, acertó 4281 y clasificó erroneamente 556 (falsos positivos).
 A partir de estos números anteriores se pudo calcular la Sensitivity y Specificity. Que son las proporciones en las que el modelo predijo bien para verdaderos positivos y verdaderos negativos. Estas fueron de 88.16% y 91.99% respectivamente.
@@ -437,7 +447,7 @@ optimizacion <- function(dataset, grid){
     }
     
     # Se imprime el progreso
-    cat(i, "/", nrow(grid), "- AUC-ROC:", auc_valid, "\n")
+    #cat(i, "/", nrow(grid), "- AUC-ROC:", auc_valid, "\n")
   }
   
   return (list(AUC = best_auc, model = best_model, hyperParameters= best_params, allResults = results))
@@ -463,6 +473,8 @@ cat("Mejor AUC-ROC:", best_auc, "\n")
 cat("Mejores Hiperparámeteros:", "\n")
 print(best_params)
 ```
+
+
 
 ## Visualizamos los resultados del GridSearch
 
@@ -571,7 +583,8 @@ Además, otra diferencia importante es que en la curva del modelo optimizado se 
 #cex controla el tamaño del texto en el gráfico.
 #tweak ajusta el tamaño de la gráfica en general.
 
-rpart.plot(model, type = 3, extra = 104, fallen.leaves = TRUE, cex = 0.8, tweak = 1.2)
+
+#rpart.plot(model, type = 3, extra = 104, fallen.leaves = TRUE, cex = 0.8, tweak = 1.2)
 
 
 ```
@@ -648,35 +661,105 @@ test_70 = dataset_NAgenerator(test_70,70)
 ## Se entrenan y prueban con los 3 datasets
 ```{r}
 #Esto es todo lo que deberiamos hacer oara cad auno de los data sets
+test_dataset = function(train,valid,test,grid,porcentaje){
+  modelo_optimizado = optimizacion(train, grid)
 
-modelo_optimizado = optimizacion(data, grid)
+  best_auc = modelo_optimizado$AUC
+  best_model = modelo_optimizado$model
+  best_params = modelo_optimizado$hyperParameters
+  results = modelo_optimizado$allResults
+  
+  #Validacion
+  rendimiento_validacion = rendimiento_modelo(valid,best_model,paste("- Validación (NAs ", porcentaje,"%)"))
+  matriz_confusion_validacion = rendimiento_validacion$matConfusion
+  #print(matriz_confusion_validacion) paste("- Validación (NAs ", porcentaje,"%)")
+  
+  #Testeo
+  rendimiento_testeo = rendimiento_modelo(test,best_model, paste("- Test (NAs ", porcentaje,"%)"))
+  matriz_confusion_testeo = rendimiento_testeo$matConfusion
+  #print(matriz_confusion_testeo)
+  
+  return (list(matConfValid = matriz_confusion_validacion,matConfTest = matriz_confusion_testeo))
+}
 
-best_auc = modelo_optimizado$AUC
-best_model = modelo_optimizado$model
-best_params = modelo_optimizado$hyperParameters
-results = modelo_optimizado$allResults
 
-#Validacion
-rendimiento_validacion = rendimiento_modelo(validData,best_model,"(Validacion)")
-matriz_confusion_validacion = rendimiento_validacion$matConfusion
-print(matriz_confusion_validacion)
+matrices_data20 = test_dataset(train_20,validation_20,test_20,grid," 20")
 
-#Testeo
-rendimiento_testeo = rendimiento_modelo(testData,best_model, "(Testeo)")
-matriz_confusion_testeo = rendimiento_testeo$matConfusion
-print(matriz_confusion_testeo)
+print(matrices_data20$matConfValid)
+print(matrices_data20$matConfTest)
+
+matrices_data50 = test_dataset(train_50,validation_20,test_50,grid," 50")
+matrices_data70 = test_dataset(train_70,validation_20,test_70,grid," 70")
 
 ```
 
+##  Comparacion de los resultados
 
 ```{r}
-# Visualización de cómo cambia el AUC-ROC con diferentes proporciones de NAs
-ggplot(results_na, aes(x = factor(na_fraction), y = auc_test, fill = factor(na_fraction))) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "AUC-ROC en Conjunto de Prueba con Diferentes Proporciones de NAs",
-       x = "Proporción de NAs",
-       y = "AUC-ROC en Prueba") +
+# Creación del dataframe con las métricas de cada matriz de confusión
+df_metricas <- data.frame(
+  Porcentaje_Faltantes = c("0% (original)", "20%", "50%", "70%"),
+  Accuracy = c(0.9634, 0.942, 0.9179, 0.8655),
+  Sensitivity = c(0.9557, 0.9359, 0.8953, 0.7954),
+  Specificity = c(0.9702, 0.9473, 0.9365, 0.9286),
+  Kappa = c(0.9265, 0.8835, 0.8339, 0.7285)
+)
+
+print(df_metricas)
+```
+
+```{r}
+
+# Convertir el dataframe a formato largo para ggplot2
+df_metricas_largo <- melt(df_metricas, id.vars = "Porcentaje_Faltantes")
+
+# Gráfico de barras
+ggplot(df_metricas_largo, aes(x = Porcentaje_Faltantes, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Comparación de Métricas de Evaluación según el Porcentaje de Datos Faltantes",
+       x = "Porcentaje de Datos Faltantes",
+       y = "Valor de la Métrica",
+       fill = "Métrica") +
   theme_minimal()
 ```
 
+```{r}
+# Gráfico de líneas
+ggplot(df_metricas_largo, aes(x = Porcentaje_Faltantes, y = value, color = variable, group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  labs(title = "Tendencia de las Métricas de Evaluación según el Porcentaje de Datos Faltantes",
+       x = "Porcentaje de Datos Faltantes",
+       y = "Valor de la Métrica",
+       color = "Métrica") +
+  theme_minimal()
+```
+
+## Analizar esto
+
+
 # 8. Conclusiones y discusión
+
+La gente debería consumir menos azúcar. También nos dimos cuenta de que, al ser un estudio realizado en Estados Unidos, se preguntó por la raza de los participantes, cuando en realidad esta variable influye poco en la predicción. Esto podría indicar que existe cierto sesgo hacia la raza en Estados Unidos.
+
+El árbol de decisión es muy efectivo para el problema que planteamos, ya que el "accuracy" en la mayoría de las matrices de confusión fue alto, lo que indica que el modelo se ajusta bien a los datos y es capaz de predecir efectivamente si una persona tiene diabetes o no.
+
+Algunas mejoras que podríamos considerar en nuestro trabajo incluyen explorar nuevos valores para los hiperparámetros, con el fin de descubrir si existe algún otro valor que pueda ajustar mejor el modelo. Sería interesante como posible dirección futura investigar la relación entre las personas que fuman y aquellas que tienen diabetes, ya que esta era la variable con más datos faltantes y podría proporcionarnos nuevas perspectivas sobre la diabetes.
+
+A lo largo del proceso de construcción del modelo, las métricas clave siempre fueron altas durante las evaluaciones, lo que indica que el modelo se mantuvo consistentemente preciso y confiable.
+
+Con base en los datos proporcionados y el análisis realizado del modelo de árbol de decisión, se pueden extraer las siguientes conclusiones generales:
+
+1. *Efectividad del Modelo*: El modelo de árbol de decisión demuestra ser altamente efectivo para el problema planteado, que es la predicción de si una persona tiene diabetes o no. Esto se evidencia en los altos valores de precisión (accuracy) obtenidos en las matrices de confusión para diferentes subconjuntos de datos. Los resultados indican que el modelo se ajusta bien a los datos de entrenamiento y es capaz de generalizar adecuadamente a los datos de prueba.
+
+2. *Impacto de los Valores Faltantes*: A medida que aumenta el porcentaje de valores faltantes en las variables predictoras, el rendimiento del modelo disminuye. Esto se refleja en la reducción de métricas clave como la precisión, la sensibilidad (recall) y el índice Kappa. Esta observación sugiere que el modelo es sensible a la calidad y la completitud de los datos; por lo tanto, la gestión adecuada de los valores faltantes es crucial para mantener el rendimiento del modelo.
+
+3. *Sesgo Potencial en las Variables*: Durante el análisis se identificó que, aunque se recopilaron datos sobre la raza de los participantes, esta variable no tiene un impacto significativo en la predicción de diabetes. Esto podría indicar un posible sesgo en la recolección de datos, reflejando prácticas comunes en estudios realizados en Estados Unidos. Es importante considerar si el uso de esta variable es justificado o si podría introducir un sesgo innecesario en el modelo.
+
+4. *Direcciones Futuras para Mejoras del Modelo*: El análisis sugiere que explorar diferentes configuraciones de hiperparámetros podría mejorar aún más el rendimiento del modelo. Por ejemplo, realizar una búsqueda más exhaustiva de hiperparámetros podría descubrir configuraciones que ajusten mejor el modelo a los datos. Además, la investigación sobre la relación entre fumar y la prevalencia de diabetes, especialmente considerando que esta fue una de las variables con más datos faltantes, podría proporcionar nuevas ideas para mejorar la precisión del modelo y la comprensión del problema.
+
+5. *Consistencia del Modelo*: A lo largo del proceso de evaluación, el modelo de árbol de decisión ha mostrado un desempeño consistente. Las métricas clave, como la precisión y el índice Kappa, se mantuvieron altas, indicando que el modelo no solo es preciso, sino también estable. Esta consistencia sugiere que el árbol de decisión es una opción robusta para este tipo de análisis predictivo, capaz de manejar variaciones en los datos de manera eficaz.
+
+6. *Posible Relación entre Fumar y Diabetes*: Dado que fumar podría estar relacionado con la diabetes y esta variable contenía datos faltantes significativos, investigarla más a fondo podría ofrecer nuevas perspectivas. Este análisis podría incluir la recolección de datos más completos o el uso de técnicas avanzadas de imputación para llenar los vacíos, lo que potencialmente podría mejorar el rendimiento del modelo.
+
+En resumen, el modelo de árbol de decisión utilizado es adecuado para el problema de predicción de diabetes, pero hay áreas donde se podría mejorar, particularmente en la gestión de valores faltantes y la exploración de relaciones más profundas entre las variables predictoras. Estas mejoras podrían llevar a un modelo aún más preciso y útil en aplicaciones prácticas.
