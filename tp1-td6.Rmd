@@ -65,7 +65,8 @@ data <- rbind(data_con, data_sin)
 ### Pre-procesamos las columnas categóricas
 
 ```{r}
-
+# Borramos "loation"
+data_sin_location <- subset(data, select = -location)
 
 # Convertir columnas a factores y manejar valores desconocidos
 
@@ -350,7 +351,7 @@ Definimos los candidatos para cada hiperparámetros de los árboles de decision
 
 ### 1. 'minSplit'
 
-**Descripción:** Función para medir la cálidad de una división.\
+**Descripción:** Indica el numero minimo de datos que se requieren para dividir un nodo.\
 **Candidatos:** - `10` - `20` - `30` - `50`
 
 ### 3. 'minBucket'
@@ -554,6 +555,16 @@ Además, otra diferencia importante es que en la curva del modelo optimizado se 
 
 ## visualizamos el Arbol
 ```{r}
+install.packages("rpart")
+install.packages("rpart.plot")
+library(rpart)
+library(rpart.plot)
+
+#cex controla el tamaño del texto en el gráfico.
+#tweak ajusta el tamaño de la gráfica en general.
+
+rpart.plot(model, type = 3, extra = 104, fallen.leaves = TRUE, cex = 0.8, tweak = 1.2)
+
 
 ```
 
