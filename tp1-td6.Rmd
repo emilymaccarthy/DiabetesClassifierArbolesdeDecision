@@ -25,6 +25,7 @@ library(pROC)
 library(e1071)
 library(ggplot2)
 library(corrplot)
+library(rpart.plot)
 
 ```
 
@@ -164,6 +165,18 @@ cor_matrix <- cor(df_numeric, use = "complete.obs")
 
 corrplot(cor_matrix, method = "color", tl.col = "black", tl.cex = 0.8)
 
+
+```
+```{r}
+
+tree_best_features = function(tree){
+  # Obtener la importancia de las variables
+  importance <- model$variable.importance
+  # Ver las importancias
+  print(importance)
+}
+
+tree_best_features(model)
 
 ```
 
@@ -340,7 +353,6 @@ Interpretación de la curva: El AUC de 0.9674 muestra que el modelo tiene un bue
 
 
 ###
-
 # 5. Optimizacion
 
 ## Búsqueda de Hiperparámetros
@@ -351,104 +363,101 @@ Definimos los candidatos para cada hiperparámetros de los árboles de decision
 
 ### 1. 'minSplit'
 
-**Descripción:** Indica el numero minimo de datos que se requieren para dividir un nodo.\
+**Descripción:** Función para medir la cálidad de una división.\
 **Candidatos:** - `10` - `20` - `30` - `50`
 
 ### 3. 'minBucket'
 
-**Descripción:** Es el mínimo número de observaciones en un nodo terminal u hoja.\
+**Descripción:** Profundidad máxima del árbol.\
 **Candidatos:** - `5` - `10` - `15` - `20`
 
 ### 4. 'maxDepth'
 
-**Descripción:** Se encarga de establecer la máxima profundidad del árbol.\
+**Descripción:** Número mínimo de muestras requeridas para dividir un nodo.\
 **Candidatos:** - `2` - `5` - `10`
 
 ### 5. 'maxCompete'
 
-**Descripción:** Controla el número alternativo de divisiones.\
+**Descripción:** Número mínimo de muestras requeridas en un nodo hoja.\
 **Candidatos:** - `1` - `3` - `5` - `10`
 
 ```{r}
-#f(dataset) -> busque hiperparametris -> entrene el arbol -> prediga, los hacemos para los 3 y comparamos
-#
-#f(dataset) -> los mejores hyperparametros
-#f(arbol,los hyper) -> confMatrix
-#
-
-
-# Se definen los hiperparámetros y sus candidatos
-
-minSplit <- c(10, 20, 30, 50)
-minBucket <- c(5, 10, 15, 20)
-maxDepth <- c(2, 5, 10, 15, 20, 25)
-maxCompete <- c(1, 3, 5, 10)
-
-# Se crea una combinación de todos los hiperparámetros
-
-grid <- expand.grid(
-  minsplit = minSplit,
-  minbucket = minBucket,
-  maxdepth = maxDepth,
-  maxcompete = maxCompete
-)
-# Crear un dataframe para almacenar los resultados de cada combinación
-results <- data.frame(
-  minsplit = numeric(),
-  minbucket = numeric(),
-  maxdepth = numeric(),
-  maxcompete = numeric(),
-  auc = numeric()
-)
-# Se inicializan variables para almacenar el mejor modelo y su rendimiento
-
-best_auc <- 0
-best_model <- NULL
-best_params <- list()
-
-# For para probar todas las combinaciones de hiperparámetros
-for (i in 1:nrow(grid)) {
-  
-  # Extraer los hiperparámetros actuales
-  params <- grid[i, ]
-  
-  # Configurar los parámetros de control de rpart
-  #cp y xval son 0 para poder construir árboles con la máxima profundidad
-  control <- rpart.control(
-    cp = 0,                       
-    minsplit = params$minsplit,
-    minbucket = params$minbucket,
-    maxdepth = params$maxdepth,
-    xval = 0                      
+optimizacion <- function(dataset, grid){
+  # Crear un dataframe para almacenar los resultados de cada combinación
+  results <- data.frame(
+    minsplit = numeric(),
+    minbucket = numeric(),
+    maxdepth = numeric(),
+    maxcompete = numeric(),
+    auc = numeric()
   )
+  # Se inicializan variables para almacenar el mejor modelo y su rendimiento
   
-  # Se entrena al modelo usando rpart con los hiperparámetros actuales
-  model <- rpart(diabetes ~ ., data = validData, method = "class", control = control)
+  best_auc <- 0
+  best_model <- NULL
+  best_params <- list()
   
-  # Se predecir en el conjunto de validación y calcular AUC-ROC
-  valid_pred <- predict(model, newdata = validData, type = "prob")[,2]
-  auc_valid <- auc(roc(validData$diabetes, valid_pred))
-  
-   # Guardar los resultados en el dataframe
-  results <- rbind(results, data.frame(
-    minsplit = params$minsplit,
-    minbucket = params$minbucket,
-    maxdepth = params$maxdepth,
-    maxcompete = params$maxcompete,
-    auc = auc_valid
-  ))
-  # Actualizar el mejor modelo si el actual es mejor
-  if (auc_valid > best_auc) {
-    best_auc <- auc_valid
-    best_model <- model
-    best_params <- params
+  # For para probar todas las combinaciones de hiperparámetros
+  for (i in 1:nrow(grid)) {
+    
+    # Extraer los hiperparámetros actuales
+    params <- grid[i, ]
+    
+    # Configurar los parámetros de control de rpart
+    #cp y xval son 0 para poder construir árboles con la máxima profundidad
+    control <- rpart.control(
+      cp = 0,                       
+      minsplit = params$minsplit,
+      minbucket = params$minbucket,
+      maxdepth = params$maxdepth,
+      xval = 0                      
+    )
+    
+    # Se entrena al modelo usando rpart con los hiperparámetros actuales
+    model <- rpart(diabetes ~ ., data = trainData, method = "class", control = control)
+    
+    # Se predecir en el conjunto de validación y calcular AUC-ROC
+    train_pred <- predict(model, newdata = trainData, type = "prob")[,2]
+    auc_valid <- auc(roc(trainData$diabetes, train_pred))
+    
+     # Guardar los resultados en el dataframe
+    results <- rbind(results, data.frame(
+      minsplit = params$minsplit,
+      minbucket = params$minbucket,
+      maxdepth = params$maxdepth,
+      maxcompete = params$maxcompete,
+      auc = auc_valid
+    ))
+    
+    # Actualizar el mejor modelo si el actual es mejor
+    if (auc_valid > best_auc) {
+      best_auc <- auc_valid
+      best_model <- model
+      best_params <- params
+    }
+    
+    # Se imprime el progreso
+    cat(i, "/", nrow(grid), "- AUC-ROC:", auc_valid, "\n")
   }
   
-  # Se imprime el progreso
-  
-  cat("Combination", i, "of", nrow(grid), "- AUC-ROC:", auc_valid, "\n")
+  return (list(AUC = best_auc, model = best_model, hyperParameters= best_params, allResults = results))
 }
 
+# Se crea una combinación de todos los hiperparámetros
+grid <- expand.grid(
+  minsplit = c(10, 20, 30, 50),
+  minbucket = c(5, 10, 15, 20),
+  maxdepth = c(2, 5, 10, 15, 20, 25),
+  maxcompete = c(1, 3, 5, 10)
+)
+
+modelo_optimizado = optimizacion(data, grid)
+
+best_auc = modelo_optimizado$AUC
+best_model = modelo_optimizado$model
+best_params = modelo_optimizado$hyperParameters
+results = modelo_optimizado$allResults
+  
 # La mejor AUC-ROC e hiperparámetros optimizados del modelo son:
 cat("Mejor AUC-ROC:", best_auc, "\n")
 cat("Mejores Hiperparámeteros:", "\n")
@@ -492,58 +501,59 @@ ggplot(results, aes(x = maxdepth, y = auc, color = factor(minsplit))) +
 ## Testeamos el rendimiento del mejor modelo con los datos de Validacion
 
 ```{r}
+rendimiento_modelo <- function(data, modelo, nombre_grafico){
+  
+  prediccion <- predict(modelo, newdata = data, type = "prob")[,2]
+  roc_test <- roc(data$diabetes, prediccion)
+  auc_test <- auc(roc_test)
+  cat("AUC-ROC on test set:", auc_test, "\n")
+  
+  ## Visualización de la curva AUC-ROC
 
-valid_pred <- predict(best_model, newdata = validData, type = "prob")[,2]
-roc_test <- roc(validData$diabetes, valid_pred)
-auc_test <- auc(roc_test)
-cat("AUC-ROC on test set:", auc_test, "\n")
-print(test_pred)
+  # Se grafica la curva ROC
+  plot(roc_test, col = "blue", lwd = 2, main = paste("Curva AUC-ROC ",nombre_grafico), auc.polygon = TRUE, grid = TRUE) 
+  
+  # Se añade la línea diagonal 
+  abline(a = 0, b = 1, col = "gray", lty = 2)
+  
+  # Convertir 'predicciones' a factor con los mismos niveles que 'testData$diabetes'
+  prediccion <- as.factor(prediccion)
+  
+  ##macheamos a factores 
+  prediccion <- factor(prediccion, levels = levels(data$diabetes))
+  
+  # Crear una tabla de confusión
+  conf_matrix <- confusionMatrix(prediccion, data$diabetes)
+  
+  # Accuracy
+  accuracy <- conf_matrix$overall["Accuracy"]
+  
+  return (list(matConfusion = conf_matrix, accuracy = accuracy))
+  
+}
 
-## Visualización de la curva AUC-ROC
-
-# Se grafica la curva ROC
-plot(roc_test, col = "blue", lwd = 2, main = "Curva AUC-ROC", auc.polygon = TRUE, grid = TRUE) 
-
-# Se añade la línea diagonal 
-abline(a = 0, b = 1, col = "gray", lty = 2)
-
-# Se convierte 'predicciones' a factor con los mismos niveles que 'testData$diabetes'
-valid_pred <- as.factor(valid_pred)
-
-## Se matchea a nivel factores 
-valid_pred <- factor(valid_pred, levels = levels(validData$diabetes))
-
-# Se crea una tabla de confusión
-conf_matrix <- confusionMatrix(valid_pred, validData$diabetes)
-
-# Se calcula la accuracy
-accuracy <- conf_matrix$overall["Accuracy"]
-print(conf_matrix)
 ```
 
-## Medición del Auc-Roc con los datos de testeo
+## Medicion del Auc-Roc con los datos de validacion y testeo
 
 ```{r}
-
-test_pred <- predict(best_model, newdata = testData, type = "prob")[,2]
-auc_test <- auc(roc(testData$diabetes, test_pred))
-cat("AUC-ROC on test set:", auc_test, "\n")
-print(test_pred)
-
-# Se convierte 'predicciones' a factor con los mismos niveles que 'testData$diabetes'
-test_pred <- as.factor(test_pred)
-
-## Se matchea a nivel factor 
-test_pred <- factor(test_pred, levels = levels(testData$diabetes))
-
-
-# Se crea una matriz de confusión
-conf_matrix <- confusionMatrix(test_pred, testData$diabetes)
-
-# Se calcula la accuracy
-accuracy <- conf_matrix$overall["Accuracy"]
-print(conf_matrix)
+#Validacion
+rendimiento_validacion = rendimiento_modelo(validData,best_model,"(Validacion)")
+matriz_confusion_validacion = rendimiento_validacion$matConfusion
+print(matriz_confusion_validacion)
 ```
+
+
+```{r}
+#Testeo
+rendimiento_testeo = rendimiento_modelo(testData,best_model, "(Testeo)")
+matriz_confusion_testeo = rendimiento_testeo$matConfusion
+print(matriz_confusion_testeo)
+
+```
+
+
+
 ## Interpretación:
 En comparación a los resultados de la matriz de confusión anterior, se puede notar que ha habido una mejora notable entre ambos modelos. La accuracy ha aumentado a un 100%, esto significa que el modelo predice bien en todas las instancias. 
 También la sensitivity paso a ser 1, esto implica que el modelo identifica todas las instancias positivas de forma correcta sin ningún falso negativo. La specificity ahora también es 1, lo que demuestra que el modelo reconoce todas las instancias 
@@ -556,13 +566,8 @@ A la hora de comparar ambas curvas, se puede observar que en esta segunda curva 
 Otra diferencia es que podemos ver que el área debajo de la curva en la segunda curva es muy cercano a 1, lo cual señala un muy buen rendimiento mientras que en la primera se nota que es un poco más pequeña.
 Además, otra diferencia importante es que en la curva del modelo optimizado se puede abstraer que este puede realizar mejores distinciones entre clases positivas y negativas, con muy pocos falsos negativos y falsos positivos.
 
-## visualizamos el Arbol
+## Visualizamos el Arbol
 ```{r}
-install.packages("rpart")
-install.packages("rpart.plot")
-library(rpart)
-library(rpart.plot)
-
 #cex controla el tamaño del texto en el gráfico.
 #tweak ajusta el tamaño de la gráfica en general.
 
@@ -641,8 +646,30 @@ test_70 = dataset_NAgenerator(test_70,70)
 
 ```
 ## Se entrenan y prueban con los 3 datasets
+```{r}
+#Esto es todo lo que deberiamos hacer oara cad auno de los data sets
 
-```{r visualizacion-na, echo=TRUE, message=FALSE, warning=FALSE}
+modelo_optimizado = optimizacion(data, grid)
+
+best_auc = modelo_optimizado$AUC
+best_model = modelo_optimizado$model
+best_params = modelo_optimizado$hyperParameters
+results = modelo_optimizado$allResults
+
+#Validacion
+rendimiento_validacion = rendimiento_modelo(validData,best_model,"(Validacion)")
+matriz_confusion_validacion = rendimiento_validacion$matConfusion
+print(matriz_confusion_validacion)
+
+#Testeo
+rendimiento_testeo = rendimiento_modelo(testData,best_model, "(Testeo)")
+matriz_confusion_testeo = rendimiento_testeo$matConfusion
+print(matriz_confusion_testeo)
+
+```
+
+
+```{r}
 # Visualización de cómo cambia el AUC-ROC con diferentes proporciones de NAs
 ggplot(results_na, aes(x = factor(na_fraction), y = auc_test, fill = factor(na_fraction))) +
   geom_bar(stat = "identity", position = "dodge") +
