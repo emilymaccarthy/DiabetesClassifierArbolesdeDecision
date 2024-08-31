@@ -72,6 +72,8 @@ data$gender[data$gender == "Other"] <- "Unknown"
 data$location <- as.factor(data$location)
 data$smoking_history <- as.factor(data$smoking_history)
 
+data$diabetes <- as.factor(data$diabetes)
+
 # Se crea una nueva y única columna para la raza
 
 
@@ -307,7 +309,7 @@ plot(roc_curve, main = "Curva ROC", col = "blue", lwd = 2)
 # Agregar la línea diagonal de no discriminación (es decir, el azar)
 abline(a = 0, b = 1, lty =2,col="red")
 ```
-Interpretación de la curva:
+Interpretación de la curva: El AUC de 0.9674 muestra que el modelo tiene un buen rendimiento para la clasificación binaria, con alta sensibilidad y especificidad en la mayoría de los umbrales. La curva ROC indica que el modelo discrimina bien entre casos positivos y negativos, superando claramente la línea de no discriminación (AUC = 0.5).
 
 
 ###
@@ -359,7 +361,14 @@ grid <- expand.grid(
   maxdepth = maxDepth,
   maxcompete = maxCompete
 )
-
+# Crear un dataframe para almacenar los resultados de cada combinación
+results <- data.frame(
+  minsplit = numeric(),
+  minbucket = numeric(),
+  maxdepth = numeric(),
+  maxcompete = numeric(),
+  auc = numeric()
+)
 # Se inicializan variables para almacenar el mejor modelo y su rendimiento
 
 best_auc <- 0
@@ -389,6 +398,14 @@ for (i in 1:nrow(grid)) {
   valid_pred <- predict(model, newdata = validData, type = "prob")[,2]
   auc_valid <- auc(roc(validData$diabetes, valid_pred))
   
+   # Guardar los resultados en el dataframe
+  results <- rbind(results, data.frame(
+    minsplit = params$minsplit,
+    minbucket = params$minbucket,
+    maxdepth = params$maxdepth,
+    maxcompete = params$maxcompete,
+    auc = auc_valid
+  ))
   # Actualizar el mejor modelo si el actual es mejor
   if (auc_valid > best_auc) {
     best_auc <- auc_valid
@@ -427,6 +444,40 @@ accuracy <- conf_matrix$overall["Accuracy"]
 print(conf_matrix)
 ```
 
+```{r visualization, echo=TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+
+# Gráfico de calor para visualizar la relación entre maxdepth y minsplit con AUC-ROC
+ggplot(results, aes(x = factor(maxdepth), y = factor(minsplit), fill = auc)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Relación entre Maxdepth, Minsplit y AUC-ROC",
+       x = "Maxdepth",
+       y = "Minsplit") +
+  theme_minimal()
+
+# Gráfico de calor para visualizar la relación entre maxcompete y maxdepth con AUC-ROC
+ggplot(results, aes(x = factor(maxcompete), y = factor(maxdepth), fill = auc)) +
+  geom_tile() +
+  scale_fill_gradient(low = "yellow", high = "purple") +
+  labs(title = "Relación entre Maxcompete, Maxdepth y AUC-ROC",
+       x = "Maxcompete",
+       y = "Maxdepth") +
+  theme_minimal()
+
+# Gráfico de líneas para observar cómo varía el AUC-ROC con diferentes combinaciones de hiperparámetros
+ggplot(results, aes(x = maxdepth, y = auc, color = factor(minsplit))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "AUC-ROC vs Maxdepth para diferentes Minsplit",
+       x = "Maxdepth",
+       y = "AUC-ROC",
+       color = "Minsplit") +
+  theme_minimal()
+```
+
+
+
 ```{r}
 
 valid_pred <- predict(best_model, newdata = validData, type = "prob")[,2]
@@ -463,6 +514,129 @@ A la hora de comparar ambas curvas, se puede observar que en esta segunda curva 
 Otra diferencia es que podemos ver que el área debajo de la curva en la segunda curva es muy cercano a 1, lo cual señala un muy buen rendimiento mientras que en la primera se nota que es un poco más pequeña.
 Además, otra diferencia importante es que en la curva del modelo optimizado se puede abstraer que este puede realizar mejores distinciones entre clases positivas y negativas, con muy pocos falsos negativos y falsos positivos.
 
-´´´{r}
 
 
+#7 
+
+```{r generar-datasets-na, echo=TRUE, message=FALSE, warning=FALSE}
+set.seed(123)  # Fijar semilla para reproducibilidad
+
+# Función para agregar NAs aleatoriamente
+add_na_randomly <- function(data, na_fraction) {
+  data_with_na <- data
+  for (col in names(data_with_na)) {
+    if (is.numeric(data_with_na[[col]])) {
+      na_indices <- sample(seq_len(nrow(data_with_na)), size = floor(na_fraction * nrow(data_with_na)))
+      data_with_na[na_indices, col] <- NA
+    }
+  }
+  return(data_with_na)
+}
+
+# Crear tres versiones de los conjuntos de datos con diferentes porcentajes de NAs
+trainData_20na <- add_na_randomly(trainData, 0.2)
+validData_20na <- add_na_randomly(validData, 0.2)
+testData_20na <- add_na_randomly(testData, 0.2)
+
+trainData_50na <- add_na_randomly(trainData, 0.5)
+validData_50na <- add_na_randomly(validData, 0.5)
+testData_50na <- add_na_randomly(testData, 0.5)
+
+trainData_75na <- add_na_randomly(trainData, 0.75)
+validData_75na <- add_na_randomly(validData, 0.75)
+testData_75na <- add_na_randomly(testData, 0.75)
+
+# Verificar algunos ejemplos de los conjuntos de datos
+summary(trainData_20na)
+summary(trainData_50na)
+summary(trainData_75na)
+
+```
+
+```{r entrenar-modelos-na, echo=TRUE, message=FALSE, warning=FALSE}
+# Inicializar variables para almacenar resultados
+results_na <- data.frame(
+  dataset = character(),
+  na_fraction = numeric(),
+  best_auc = numeric(),
+  auc_test = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Lista de datasets para iterar
+datasets <- list(
+  list(name = "20% NAs", train = trainData_20na, valid = validData_20na, test = testData_20na, na_fraction = 0.2),
+  list(name = "50% NAs", train = trainData_50na, valid = validData_50na, test = testData_50na, na_fraction = 0.5),
+  list(name = "75% NAs", train = trainData_75na, valid = validData_75na, test = testData_75na, na_fraction = 0.75)
+)
+
+# Entrenamiento de modelos para cada conjunto de datos con valores faltantes
+for (ds in datasets) {
+  best_auc_na <- 0
+  best_model_na <- NULL
+  
+  # Entrenamiento de modelos con las combinaciones de hiperparámetros optimizadas
+  for (i in 1:nrow(grid)) {
+    params <- grid[i, ]
+    
+    control <- rpart.control(
+      cp = 0,
+      minsplit = params$minsplit,
+      minbucket = params$minbucket,
+      maxdepth = params$maxdepth,
+      xval = 0
+    )
+    
+    model_na <- rpart(diabetes ~ ., data = ds$train, method = "class", control = control)
+    
+    # Predecir en el conjunto de validación y calcular AUC-ROC
+    valid_pred_na <- predict(model_na, newdata = ds$valid, type = "prob")[,2]
+    auc_valid_na <- auc(roc(ds$valid$diabetes, valid_pred_na))
+    
+    if (auc_valid_na > best_auc_na) {
+      best_auc_na <- auc_valid_na
+      best_model_na <- model_na
+    }
+  }
+  
+  # Evaluar el modelo optimizado en el conjunto de prueba
+  test_pred_na <- predict(best_model_na, newdata = ds$test, type = "prob")[,2]
+  auc_test_na <- auc(roc(ds$test$diabetes, test_pred_na))
+  
+  # Guardar los resultados
+  results_na <- rbind(results_na, data.frame(
+    dataset = ds$name,
+    na_fraction = ds$na_fraction,
+    best_auc = best_auc_na,
+    auc_test = auc_test_na
+  ))
+  
+  # Imprimir resultados
+  cat("Dataset:", ds$name, "- Mejor AUC-ROC en validación:", best_auc_na, "- AUC-ROC en prueba:", auc_test_na, "\n")
+}
+```
+
+```{r visualizacion-na, echo=TRUE, message=FALSE, warning=FALSE}
+# Visualización de cómo cambia el AUC-ROC con diferentes proporciones de NAs
+ggplot(results_na, aes(x = factor(na_fraction), y = auc_test, fill = factor(na_fraction))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "AUC-ROC en Conjunto de Prueba con Diferentes Proporciones de NAs",
+       x = "Proporción de NAs",
+       y = "AUC-ROC en Prueba") +
+  theme_minimal()
+```
+
+
+Generación de Conjuntos de Datos con NAs:
+
+Usamos la función add_na_randomly para agregar valores faltantes (NA) aleatoriamente en las variables predictoras de los conjuntos de datos de entrenamiento, validación y prueba.
+Generamos tres conjuntos de datos con diferentes porcentajes de NAs: 20%, 50%, y 75%.
+Entrenamiento de Modelos Optimizados:
+
+Iteramos sobre cada conjunto de datos con diferentes proporciones de NAs.
+Entrenamos un modelo de árbol de decisión utilizando los mismos hiperparámetros optimizados que en el punto 5.
+Calculamos el AUC-ROC para cada modelo entrenado en el conjunto de validación y seleccionamos el mejor modelo.
+Visualización del Rendimiento:
+
+Usamos ggplot2 para crear un gráfico de barras que muestra cómo varía el AUC-ROC en el conjunto de prueba a medida que aumenta la proporción de valores faltantes.
+Este gráfico ayudará a analizar cómo los valores faltantes afectan el rendimiento del modelo.
