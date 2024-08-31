@@ -571,36 +571,36 @@ rpart.plot(model, type = 3, extra = 104, fallen.leaves = TRUE, cex = 0.8, tweak 
 
 ```
 
-# 7 Analisis del impacto de valores faltantes (20% 50% 70%) 
+# 7. Análisis del impacto de valores faltantes (20% 50% 70%) 
 
 ```{r}
-# Funcion que introduce NA 
+# Función que introduce NA 
 dataset_NAgenerator <- function(dataset, rate) {
   # Verificar que el rate esté entre 1 y 100
   if (rate < 1 | rate > 100) {
     stop("El 'rate' debe estar entre 1 y 100")
   }
   
-  # Hacer una copia del dataset para no modificar el original
+  # Se hace una copia del dataset para no modificar el original
   dataset_na <- dataset
   
-  # Convertir el rate a un porcentaje
+  # Se convierte el rate a un porcentaje
   rate <- rate / 100
   
-  # Número de filas en el dataset
+  # El número de filas en el dataset
   num_rows <- nrow(dataset_na)
   
-  # Número de filas a reemplazar por NA para la columna actual
+  # El número de filas a reemplazar por NA para la columna actual
     num_na <- round(num_rows * rate)
   
-  # Iterar sobre cada columna
+  # Se iterar sobre cada columna
   for (col in colnames(dataset_na)) {
-    # Saltar la columna 'diabetes'
+    # Se saltea la columna 'diabetes'
     if (col != 'diabetes') {
-      # Seleccionar filas aleatorias para reemplazar por NA en la columna actual
+      # Se seleccionan filas aleatorias para reemplazar por NA en la columna actual
       rows_to_na <- sample(1:num_rows, num_na)
       
-      # Reemplazar las filas seleccionadas por NA en la columna actual
+      # Se reemplaza las filas seleccionadas por NA en la columna actual
       dataset_na[rows_to_na, col] <- NA
     }
     
@@ -640,7 +640,7 @@ test_70 = dataset_NAgenerator(test_70,70)
 
 
 ```
-## Entrenamos y probamos con los 3 datasets
+## Se entrenan y prueban con los 3 datasets
 
 ```{r visualizacion-na, echo=TRUE, message=FALSE, warning=FALSE}
 # Visualización de cómo cambia el AUC-ROC con diferentes proporciones de NAs
@@ -652,4 +652,4 @@ ggplot(results_na, aes(x = factor(na_fraction), y = auc_test, fill = factor(na_f
   theme_minimal()
 ```
 
-# 8
+# 8. Conclusiones y discusión
