@@ -567,10 +567,8 @@ print(matriz_confusion_testeo)
 
 
 ## Interpretación:
-En comparación a los resultados de la matriz de confusión anterior, se puede notar que ha habido una mejora notable entre ambos modelos. La accuracy ha aumentado a un 100%, esto significa que el modelo predice bien en todas las instancias. 
-También la sensitivity paso a ser 1, esto implica que el modelo identifica todas las instancias positivas de forma correcta sin ningún falso negativo. La specificity ahora también es 1, lo que demuestra que el modelo reconoce todas las instancias 
-negativas sin ningún falso positivo.
-
+En comparación a los resultados de la matriz de confusión anterior, se puede notar que ha habido una mejora notable entre ambos modelos. La accuracy ha aumentado a un 96.2%, esto significa que el modelo predice bien en todas las instancias. 
+También la sensitivity paso a ser 95.85%, esto implica que el modelo identifica todas las instancias positivas de forma correcta sin ningún falso negativo. La specificity ahora también es 96.51%, lo que demuestra que el modelo reconoce todas las instancias negativas sin ningún falso positivo.
 
 # 6. Interpretación de los resultados
 
