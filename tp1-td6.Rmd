@@ -58,20 +58,20 @@ data_original = read.csv('diabetes_dataset.csv')
 
 ```{r}
 
-#Separamos los datos entre los pacientes con diabete y sin diabetes
+# Se separa los datos entre los pacientes con diabetes y sin diabetes
 data_sin = data_original[data_original$diabetes == 0,]
 data_con = data_original[data_original$diabetes == 1,]
 
-#contamos la cantidad de pacientes con diabetes 
+# Se cuenta la cantidad de pacientes con diabetes 
 cant_diabetes = nrow(data_original[data_original$diabetes > 0, ])
 
-# Sabemos que la cantidad de gente con diabetes es menor a la cantidad sin diabetes en el dataset, balanceamos esto y hacemos que seaa 50/50 la cantidad de casos con diabetes y sin diabetes (ponemos el seed para reproducibilidad )
+# Se sabe que la cantidad de gente con diabetes es menor a la cantidad sin diabetes en el dataset, así que se balancea para que sea proporcional la cantidad de casos con diabetes y sin diabetes (Se agreaga el seed para reproducibilidad)
 set.seed(40)
 if(nrow(data_sin) > cant_diabetes) {
   data_sin <- data_sin[sample(nrow(data_sin), cant_diabetes, replace = FALSE), ]
 }
 
-#juntamos la data y al guardamos
+# Se combina los datos en un mismo conjunto de datos
 data <- rbind(data_con, data_sin)
 
 
@@ -80,13 +80,13 @@ data <- rbind(data_con, data_sin)
 
 # 2. Preparación de los datos
 
-### Pre-procesamos las columnas categóricas
+### Se pre-procesan las columnas categóricas
 
 ```{r}
-# Borramos "loation"
+# Se borra "location" ya que no es relevante
 data_sin_location <- subset(data, select = -location)
 
-# Convertir columnas a factores y manejar valores desconocidos
+# Se convierten las columnas a factores y se manejan los valores desconocidos
 
 data$gender <- factor(data$gender, levels = c("Male", "Female", "Unknown"))
 data$gender[data$gender == "Other"] <- "Unknown"
@@ -161,7 +161,7 @@ ggplot(data, aes(x = bmi)) +
   labs(title = "Distribución del IMC", x = "IMC", y = "Frecuencia") +
   theme_minimal()
 
-# Boxplot de Edad por Género
+# Boxplot de edad por género
 
 ggplot(data, aes(x = gender, y = age, fill = gender)) +
   geom_boxplot() +
@@ -208,7 +208,7 @@ ggplot(data, aes(x = smoking_history, fill = diabetes)) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#Comparación de 'location' con 'diabetes'
+# Comparación de 'location' con 'diabetes'
 ggplot(data, aes(x = location, fill = diabetes)) +
     geom_bar(position = "fill") +
     labs(title = "Comparación de Ubicación y Diabetes",
@@ -250,7 +250,7 @@ El individuo promedio tiene alrededor de cincuenta años de edad.
 En la matriz de correlación se puede observar que los tonos azules más oscuros tienen una correlación positiva (es decir, cerca de 1), mientras que los más rojos una correlación negativa (cerca de -1 ) y por último, los tonos más claros y casi blancos indican una correlación muy débil o casi nula.
 Algo notable de esta visualización es que se puede observar que para las variables 'bmi' y 'blood_glucose_level' tienen una correlación positiva, lo cual tiene mucho sentido dado el contexto de salud ya que los mayores índices de masa corporal se asocian a mayores niveles de glucosal.
 
-# 3: Construcción árbol básico
+# 3. Construcción árbol básico
 
 Los datos fueron divididos en tres partes (70%, 15% y 15%) de forma aleatoria con una seed para destinar cada una de las partes a diferentes etapas del proceso.
 
@@ -347,7 +347,7 @@ tree_best_features(default_tree)
 
 ```
 
-### Interpretacion
+### Interpretación
 
 Con base en la importancia de las variables del árbol de decisión, se pueden extraer las siguientes conclusiones sobre las características más influyentes en el modelo:
 
@@ -390,7 +390,7 @@ print(conf_matrix)
 
 ```
 
-### Interpretación de los resultados:
+### Interpretación de los resultados
 
 Se puede ver que el modelo predijo correctamente 4140 instancias no tienen la condición 0 (es decir, no son diabéticos) mientras que el número de falsos negativos fue de 373.
 Para las instancias de verdaderos positivos, acertó 4281 y clasificó erroneamente 556 (falsos positivos).
@@ -412,7 +412,8 @@ print(recall)
 
 ```
 
-Interpretación: Una precision de 95.66% fueron aquellas instancias en las que el modelo predijo que eran positivas y realmente lo eran.
+Interpretación 
+Una precision de 95.66% fueron aquellas instancias en las que el modelo predijo que eran positivas y realmente lo eran.
 Mientras que el recall fue de 97.24%.
 Un precision y recall alto implica que el modelo predice correctamente la mayoría de los positivos sin perder muchos casos positivos reales.
 
@@ -425,7 +426,8 @@ print(f1_score)
 
 ```
 
-Interpretación: Esto refleja que hay un buen balance entre precision y recall.
+Interpretación 
+Esto refleja que hay un buen balance entre precision y recall.
 Por consecuencia, el model tiene un buen manejo sobre tanto para falsos positivos como para falsos negativos.
 
 ## AUC-ROC: Área bajo la curva ROC.
@@ -450,12 +452,13 @@ plot(roc_curve, main = "Curva ROC", col = "blue", lwd = 2)
 abline(a = 0, b = 1, lty =2,col="red")
 ```
 
-Interpretación de la curva: El AUC de 0.9674 muestra que el modelo tiene un buen rendimiento para la clasificación binaria, con alta sensibilidad y especificidad en la mayoría de los umbrales.
+Interpretación de la curva
+El AUC de 0.9674 muestra que el modelo tiene un buen rendimiento para la clasificación binaria, con alta sensibilidad y especificidad en la mayoría de los umbrales.
 La curva ROC indica que el modelo discrimina bien entre casos positivos y negativos, superando claramente la línea de no discriminación (AUC = 0.5).
 
 ### 
 
-# 5. Optimizacion
+# 5. Optimización
 
 ## Búsqueda de Hiperparámetros
 
@@ -505,7 +508,7 @@ optimizacion <- function(dataset, grid){
     # Extraer los hiperparámetros actuales
     params <- grid[i, ]
     
-    # Configurar los parámetros de control de rpart
+    # Se configuran los parámetros de control de rpart
     #cp y xval son 0 para poder construir árboles con la máxima profundidad
     control <- rpart.control(
       cp = 0,                       
@@ -518,11 +521,11 @@ optimizacion <- function(dataset, grid){
     # Se entrena al modelo usando rpart con los hiperparámetros actuales
     model <- rpart(diabetes ~ ., data = trainData, method = "class", control = control)
     
-    # Se predecir en el conjunto de validación y calcular AUC-ROC
+    # Se predice en el conjunto de validación y calcular AUC-ROC
     train_pred <- predict(model, newdata = trainData, type = "prob")[,2]
     auc_valid <- auc(roc(trainData$diabetes, train_pred))
     
-     # Guardar los resultados en el dataframe
+     # Se guardan los resultados en el dataframe
     results <- rbind(results, data.frame(
       minsplit = params$minsplit,
       minbucket = params$minbucket,
@@ -531,7 +534,7 @@ optimizacion <- function(dataset, grid){
       auc = auc_valid
     ))
     
-    # Actualizar el mejor modelo si el actual es mejor
+    # Se actualizan el mejor modelo si el actual es mejor
     if (auc_valid > best_auc) {
       best_auc <- auc_valid
       best_model <- model
@@ -566,7 +569,7 @@ cat("Mejores Hiperparámeteros:", "\n")
 print(best_params)
 ```
 
-## Visualizamos los resultados de la optimizacion
+## Visualización de los resultados de la optimización
 
 ```{r}
 
@@ -599,7 +602,7 @@ ggplot(results, aes(x = maxdepth, y = auc, color = factor(minsplit))) +
   theme_minimal()
 ```
 
-### Interpretacion
+### Interpretación
 
 En el primer gráfico, que muestra la relación entre Maxdepth, Minsplit y AUC-ROC, observamos que a medida que Maxdepth aumenta, el AUC-ROC también se incrementa, estabilizándose en un punto alto cuando Maxdepth supera los 10.
 Este comportamiento sugiere que una mayor profundidad permite al modelo capturar mejor las complejidades de los datos, mejorando su capacidad predictiva.
@@ -619,7 +622,7 @@ En general, todos los gráficos indican que existe un punto de saturación en el
 Esto sugiere que una estrategia óptima sería maximizar la profundidad del árbol hasta un punto razonable y ajustar los parámetros de Maxcompete y Minsplit para encontrar un equilibrio que evite tanto el subajuste como el sobreajuste.
 Ajustar estos parámetros puede ayudar a desarrollar un modelo más robusto y efectivo, capturando relaciones complejas mientras evita el ruido innecesario, optimizando así la predicción de diabetes en los datos.
 
-## Testeamos el rendimiento del mejor modelo con los datos de Validacion
+## Se evalua el rendimiento del mejor modelo con los datos de Validación
 
 ```{r}
 rendimiento_modelo <- function(data, modelo, nombre_grafico){
@@ -637,13 +640,13 @@ rendimiento_modelo <- function(data, modelo, nombre_grafico){
   # Se añade la línea diagonal 
   abline(a = 0, b = 1, col = "gray", lty = 2)
   
-  # Convertir 'predicciones' a factor con los mismos niveles que 'testData$diabetes'
+  # Se convierte 'predicciones' a factor con los mismos niveles que 'testData$diabetes'
   prediccion <- as.factor(prediccion)
   
-  ##macheamos a factores 
+  ## Se matchea a factores 
   prediccion <- factor(prediccion, levels = levels(data$diabetes))
   
-  # Crear una tabla de confusión
+  # Se crea una tabla de confusión
   conf_matrix <- confusionMatrix(prediccion, data$diabetes)
   
   # Accuracy
@@ -655,24 +658,24 @@ rendimiento_modelo <- function(data, modelo, nombre_grafico){
 
 ```
 
-## Medicion del Auc-Roc con los datos de validacion y testeo
+## Medición del Auc-Roc con los datos de validación y testeo
 
 ```{r}
-#Validacion
+# Validación
 rendimiento_validacion = rendimiento_modelo(validData,best_model,"(Validacion)")
 matriz_confusion_validacion = rendimiento_validacion$matConfusion
 print(matriz_confusion_validacion)
 ```
 
 ```{r}
-#Testeo
+# Testeo
 rendimiento_testeo = rendimiento_modelo(testData,best_model, "(Testeo)")
 matriz_confusion_testeo = rendimiento_testeo$matConfusion
 print(matriz_confusion_testeo)
 
 ```
 
-## Interpretación:
+## Interpretación
 
 En comparación a los resultados de la matriz de confusión anterior, se puede notar que ha habido una mejora notable entre ambos modelos.
 La accuracy ha aumentado a un 96.2%, esto significa que el modelo predice bien en todas las instancias.
@@ -686,7 +689,7 @@ Esto podría indicar robustez, es decir, que no es tan sensible a cambios en los
 Otra diferencia es que podemos ver que el área debajo de la curva en la segunda curva es muy cercano a 1, lo cual señala un muy buen rendimiento mientras que en la primera se nota que es un poco más pequeña.
 Además, otra diferencia importante es que en la curva del modelo optimizado se puede abstraer que este puede realizar mejores distinciones entre clases positivas y negativas, con muy pocos falsos negativos y falsos positivos.
 
-## Visualizamos el Arbol
+## Visualización del árbol
 
 ```{r}
 #cex controla el tamaño del texto en el gráfico.
@@ -720,11 +723,11 @@ dataset_NAgenerator <- function(dataset, rate) {
   # El número de filas a reemplazar por NA para la columna actual
     num_na <- round(num_rows * rate)
   
-  # Se iterar sobre cada columna
+  # Se itera sobre cada columna
   for (col in colnames(dataset_na)) {
     # Se saltea la columna 'diabetes'
     if (col != 'diabetes') {
-      # Se seleccionan filas aleatorias para reemplazar por NA en la columna actual
+      # Se seleccionan filas de forma aleatoria para reemplazar por NA en la columna actual
       rows_to_na <- sample(1:num_rows, num_na)
       
       # Se reemplaza las filas seleccionadas por NA en la columna actual
@@ -738,7 +741,7 @@ dataset_NAgenerator <- function(dataset, rate) {
 }
 ```
 
-## Generamos los 3 conjuntos de datos
+## Se crean los 3 conjuntos de datos
 
 ```{r}
 set_20 = split_dataset(data)
@@ -771,7 +774,7 @@ test_70 = dataset_NAgenerator(test_70,70)
 ## Se entrenan y prueban con los 3 datasets
 
 ```{r}
-#Esto es todo lo que deberiamos hacer oara cad auno de los data sets
+# Esto es todo lo que se debería repetir para cada uno de los data sets
 test_dataset = function(train,valid,test,grid,porcentaje){
   modelo_optimizado = optimizacion(train, grid)
 
@@ -780,12 +783,12 @@ test_dataset = function(train,valid,test,grid,porcentaje){
   best_params = modelo_optimizado$hyperParameters
   results = modelo_optimizado$allResults
   
-  #Validacion
+  # Validación
   rendimiento_validacion = rendimiento_modelo(valid,best_model,paste("- Validación (NAs ", porcentaje,"%)"))
   matriz_confusion_validacion = rendimiento_validacion$matConfusion
   #print(matriz_confusion_validacion) paste("- Validación (NAs ", porcentaje,"%)")
   
-  #Testeo
+  # Testeo
   rendimiento_testeo = rendimiento_modelo(test,best_model, paste("- Test (NAs ", porcentaje,"%)"))
   matriz_confusion_testeo = rendimiento_testeo$matConfusion
   #print(matriz_confusion_testeo)
@@ -804,7 +807,7 @@ matrices_data70 = test_dataset(train_70,validation_20,test_70,grid,"70")
 
 ```
 
-## Comparacion de los resultados en testeo
+## Comparación de los resultados en testeo
 
 ```{r}
 # Creación del dataframe con las métricas de cada matriz de confusión
@@ -820,7 +823,7 @@ print(df_metricas)
 
 ```{r}
 
-# Convertir el dataframe a formato largo para ggplot2
+# Se convierte el dataframe a formato largo para ggplot2
 df_metricas_largo <- melt(df_metricas, id.vars = "Porcentaje_Faltantes")
 
 # Gráfico de barras
@@ -845,7 +848,7 @@ ggplot(df_metricas_largo, aes(x = Porcentaje_Faltantes, y = value, color = varia
   theme_minimal()
 ```
 
-## Interpretacion:
+## Interpretación
 
 En el primer gráfico de barras, se comparan las métricas de evaluación (Accuracy, Sensitivity y Specificity) a diferentes niveles de datos faltantes: 0% (original), 20%, 50% y 70%.
 Cuando observamos los resultados con el 0% de datos faltantes, es decir, en el dataset original, todas las métricas están muy cerca del valor 1.
