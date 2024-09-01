@@ -849,8 +849,8 @@ ggplot(df_metricas_largo, aes(x = Porcentaje_Faltantes, y = value, color = varia
 
 En el primer gráfico de barras, se comparan las métricas de evaluación (Accuracy, Sensitivity y Specificity) a diferentes niveles de datos faltantes: 0% (original), 20%, 50% y 70%.
 Cuando observamos los resultados con el 0% de datos faltantes, es decir, en el dataset original, todas las métricas están muy cerca del valor 1.
-Esto nos dice que el modelo funciona con una alta precisión y capacidad de identificar correctamente tanto los verdaderos positivos como los verdaderos negativos.
-Esto nos sirve mucho para comparar con el resto de los datasets.
+Esto señala que el modelo funciona con una alta precisión y capacidad de identificar correctamente tanto los verdaderos positivos como los verdaderos negativos.
+Esto es útil para comparar con el resto de los datasets.
 
 A medida que se introduce un 20% de datos faltantes, las métricas comienzan a mostrar una ligera disminución.
 En particular, Sensitivity es la métrica más afectada.
@@ -867,19 +867,18 @@ Esta gráfica enfatiza que la pérdida de datos no solo afecta la Accuracy gener
 Una observación interesante en este gráfico es que mientras que Specificity se mantiene relativamente alta en comparación con Sensitivity, esto sugiere que el modelo conserva una mayor precisión en la identificación de verdaderos negativos que de verdaderos positivos.
 Este comportamiento puede deberse a que el modelo se vuelve más conservador en sus predicciones cuando enfrenta datos incompletos, prefiriendo no predecir un positivo en presencia de incertidumbre.
 
-En conclusión, ambos gráficos reflejan claramente que un aumento en los datos faltantes afecta negativamente el rendimiento de tu modelo de clasificación, con efectos más pronunciados en la Sensitivity Esto resalta la importancia de manejar adecuadamente los datos faltantes para minimizar su impacto negativo en la capacidad de predicción y generalización del modelo.
+En conclusión, ambos gráficos reflejan claramente que un aumento en los datos faltantes afecta negativamente el rendimiento de tu modelo de clasificación, con efectos más pronunciados en la Sensitivity. Esto resalta la importancia de manejar adecuadamente los datos faltantes para minimizar su impacto negativo en la capacidad de predicción y generalización del modelo.
 Para mitigar estos efectos, se podria implementar técnicas avanzadas de imputación de datos o utilizar modelos que sean más robustos ante la falta de datos.
 
 # 8. Conclusiones y discusión
 
-El análisis sugiere que el consumo de azúcar debería reducirse como medida general de salud.
-Además, se observó que la raza de los participantes, a pesar de ser recolectada en el estudio, tuvo poca influencia en la predicción de diabetes.
-Este resultado podría reflejar un sesgo en la recolección de datos en Estados Unidos, donde a menudo se consideran variables como la raza, incluso cuando su impacto en los resultados es mínimo.
+El análisis sugiere que los niveles de glucosa en sangre deberían reducirse como medida general de salud para la prevención de diabetes.
+Además, se observó que la raza de los participantes, a pesar de ser recolectada en el estudio, tuvo poca influencia en la predicción de diabetes. Este resultado podría reflejar un sesgo en la recolección de datos en Estados Unidos, donde a menudo se consideran variables como la raza, incluso cuando su impacto en los resultados es mínimo.
 Por lo tanto, es importante cuestionar la relevancia de ciertas variables en la construcción de modelos predictivos.
 
 El modelo de árbol de decisión fue altamente efectivo para predecir si una persona tiene diabetes, lo que se demuestra en los altos valores de precisión (accuracy) obtenidos en las matrices de confusión para diferentes subconjuntos de datos.
 Esto indica que el modelo se ajusta bien tanto a los datos de entrenamiento como de prueba, mostrando un desempeño consistente en términos de precisión y fiabilidad.
-A lo largo del proceso de evaluación, las métricas clave, como la precisión y el índice Kappa, se mantuvieron altas, lo que sugiere que el modelo es una herramienta robusta y estable para el análisis predictivo, incluso cuando enfrenta desafíos como la presencia de valores faltantes.
+A lo largo del proceso de evaluación, las métricas clave, como la precisión, se mantuvieron altas, lo que sugiere que el modelo es una herramienta robusta y estable para el análisis predictivo, incluso cuando enfrenta desafíos como la presencia de valores faltantes.
 
 Para mejorar el modelo, sería útil explorar configuraciones alternativas de hiperparámetros que puedan optimizar aún más su rendimiento.
 Una búsqueda más exhaustiva de hiperparámetros podría descubrir configuraciones que ajusten mejor el modelo a los datos.
